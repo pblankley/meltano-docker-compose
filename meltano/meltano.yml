@@ -1,0 +1,43 @@
+version: 1
+send_anonymous_usage_stats: true
+plugins:
+  extractors:
+    - name: tap-shopify
+      pip_url: tap-shopify==1.2.0
+      select:
+        - abandoned_checkouts.*
+        - collects.*
+        - custom_collections.*
+        - customers.*
+        - order_refunds.*
+        - orders.*
+        - products.*
+        - transactions.*
+      config:
+        shop: store-name
+        api_key: <YOUR-SHOPIFY-API-KEY>
+        start_date: "2020-07-13"
+  loaders:
+    - name: target-snowflake
+      pip_url: git+https://gitlab.com/meltano/target-snowflake.git
+      config:
+        account: <YOUR-SNOWFLAKE-ACCOUNT>
+        database: TEST_DB
+        password: <YOUR-SNOWFLAKE-PASSWORD>
+        role: <YOUR-SNOWFLAKE-ROLE>
+        schema: TEST_SCHEMA
+        username: <YOUR-SNOWFLAKE-USER>
+        warehouse: TEST_WAREHOUSE
+  orchestrators:
+    - name: airflow
+      pip_url: wtforms==2.2.1 apache-airflow==1.10.2
+  files:
+    - name: airflow
+      pip_url: git+https://gitlab.com/meltano/files-airflow.git
+schedules:
+  - name: shopify-to-snowflake
+    extractor: tap-shopify
+    loader: target-snowflake
+    transform: skip
+    interval: "@hourly"
+    start_date: 2020-07-16 23:19:22.598457

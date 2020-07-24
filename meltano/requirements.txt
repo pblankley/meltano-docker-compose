@@ -1,0 +1,2 @@
+# Pin an older version of pandas, for example
+pandas==0.25.3

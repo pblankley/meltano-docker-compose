@@ -1,0 +1,68 @@
+version: "3.7"
+services:
+  postgres:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+
+  meltano:
+    build:
+      context: ./meltano
+      dockerfile: Dockerfile
+    image: meltano
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    ports:
+      - "5000:5000"
+    command: ui
+
+  webserver:
+    image: meltano
+    restart: always
+    depends_on:
+      - meltano
+      - postgres
+    environment:
+        - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
+        - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
+        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+        # - LOAD_EX=n
+        # - EXECUTOR=Local
+    volumes:
+      - ./orchestrate/dags:/usr/local/airflow/dags
+    ports:
+      - "8080:8080"
+    command: invoke airflow webserver
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  scheduler:
+    image: meltano
+    restart: always
+    depends_on:
+      - meltano
+      - postgres
+    volumes:
+      - ./orchestrate/dags:/usr/local/airflow/dags
+    environment:
+      - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      # - LOAD_EX=n
+      # - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      # - POSTGRES_USER=airflow
+      # - POSTGRES_PASSWORD=airflow
+      # - POSTGRES_DB=airflow
+    command: invoke airflow scheduler
