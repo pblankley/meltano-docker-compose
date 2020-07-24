@@ -35,8 +35,6 @@ services:
         - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
         - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
         - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-        # - LOAD_EX=n
-        # - EXECUTOR=Local
     volumes:
       - ./orchestrate/dags:/usr/local/airflow/dags
     ports:
@@ -60,9 +58,4 @@ services:
       - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      # - LOAD_EX=n
-      # - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
-      # - POSTGRES_USER=airflow
-      # - POSTGRES_PASSWORD=airflow
-      # - POSTGRES_DB=airflow
     command: invoke airflow scheduler
