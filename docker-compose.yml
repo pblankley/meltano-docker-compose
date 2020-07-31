@@ -9,53 +9,67 @@ services:
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
 
+  # Meltano container with postgres database, airflow, and running ui (read_only)
+  # meltano:
+  #   build:
+  #     context: ./meltano
+  #     dockerfile: Dockerfile
+  #   image: meltano
+  #   restart: always
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
+  #     - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
+  #     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+  #   ports:
+  #     - "5000:5000"
+  #   command: ui
+
   meltano:
-    build:
-      context: ./meltano
-      dockerfile: Dockerfile
-    image: meltano
-    restart: always
-    depends_on:
-      - postgres
-    environment:
-      - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-    ports:
-      - "5000:5000"
-    command: ui
-
-  webserver:
-    image: meltano
-    restart: always
-    depends_on:
-      - meltano
-      - postgres
-    environment:
-        - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
-        - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
-        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    image: meltano/meltano
+    working_dir: /project
     volumes:
-      - ./orchestrate/dags:/usr/local/airflow/dags
+    - ./meltano/:/project
+  # Uncomment to use the postgres backend for the meltano container
+  #   environment:
+  #     - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
     ports:
-      - "8080:8080"
-    command: invoke airflow webserver
-    healthcheck:
-      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
+    - '5000:5000'
+    - '5010:5010'
 
-  scheduler:
-    image: meltano
-    restart: always
-    depends_on:
-      - meltano
-      - postgres
-    volumes:
-      - ./orchestrate/dags:/usr/local/airflow/dags
-    environment:
-      - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-    command: invoke airflow scheduler
+  # Optional Airflow containers
+  # webserver:
+  #   image: meltano
+  #   restart: always
+  #   depends_on:
+  #     - meltano
+  #     - postgres
+  #   environment:
+  #       - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
+  #       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
+  #       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+  #   volumes:
+  #     - ./orchestrate/dags:/usr/local/airflow/dags
+  #   ports:
+  #     - "8080:8080"
+  #   command: invoke airflow webserver
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+  #     interval: 30s
+  #     timeout: 30s
+  #     retries: 3
+  #
+  # scheduler:
+  #   image: meltano
+  #   restart: always
+  #   depends_on:
+  #     - meltano
+  #     - postgres
+  #   volumes:
+  #     - ./orchestrate/dags:/usr/local/airflow/dags
+  #   environment:
+  #     - MELTANO_DATABASE_URI=postgres://airflow:airflow@postgres:5432/db_meltano
+  #     - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:airflow@postgres:5432/db_airflow
+  #     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+  #   command: invoke airflow scheduler
